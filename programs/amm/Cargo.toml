@@ -24,12 +24,15 @@ test-bpf-snapshot = []
 overflow-checks = true
 
 [dependencies]
-anchor-lang = "0.26.0"
-anchor-spl = "0.26.0"
-mercurial-vault = { version = "0.4.7", features = ["cpi"] }
+anchor-lang = "0.26"
+anchor-spl = "0.26"
+#mercurial-vault = { version = "0.4.7", features = ["cpi"] }
+mercurial-vault = { path = "../../../vault-sdk/programs/vault" }
 spl-token-swap = { version = "3.0.0", features = ["no-entrypoint"] }
-meteora-stable-swap-math = "1.8.1"
-meteora-stable-swap-client = "1.8.1"
+#meteora-stable-swap-math = "1.8.1"
+#meteora-stable-swap-client = "1.8.1"
+meteora-stable-swap-math = { path = "../../../stable-swap/stable-swap-math", package = "stable-swap-math" }
+meteora-stable-swap-client = { path = "../../../stable-swap/stable-swap-client", package = "stable-swap-client" }
 meteora-marinade-sdk = { version = "0.1.0", features = ["cpi"] }
 spl-stake-pool = { version = "0.6.4", features = ["no-entrypoint"] }
 anyhow = "1.0.71"
