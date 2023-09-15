@@ -2274,6 +2274,7 @@ dependencies = [
 [[package]]
 name = "marinade-sdk"
 version = "0.1.0"
+source = "git+https://github.com/jup-ag/marinade-sdk.git?rev=7eab901fdac376db2a0dec9f70a89157bf1bff1a#7eab901fdac376db2a0dec9f70a89157bf1bff1a"
 dependencies = [
  "borsh 0.10.3",
  "derive_more",
@@ -2286,6 +2287,7 @@ dependencies = [
 [[package]]
 name = "marinade-sdk-macro"
 version = "0.1.0"
+source = "git+https://github.com/jup-ag/marinade-sdk.git?rev=7eab901fdac376db2a0dec9f70a89157bf1bff1a#7eab901fdac376db2a0dec9f70a89157bf1bff1a"
 dependencies = [
  "log",
  "proc-macro2 1.0.66",
@@ -2375,6 +2377,7 @@ dependencies = [
 [[package]]
 name = "micro-anchor"
 version = "0.1.0"
+source = "git+https://github.com/jup-ag/marinade-sdk.git?rev=7eab901fdac376db2a0dec9f70a89157bf1bff1a#7eab901fdac376db2a0dec9f70a89157bf1bff1a"
 dependencies = [
  "borsh 0.10.3",
  "derive_more",

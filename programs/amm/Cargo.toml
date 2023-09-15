@@ -33,7 +33,8 @@ spl-token-swap = { version = "3.0.0", features = ["no-entrypoint"] }
 #meteora-stable-swap-client = "1.8.1"
 meteora-stable-swap-math = { path = "../../../stable-swap/stable-swap-math", package = "stable-swap-math" }
 meteora-stable-swap-client = { path = "../../../stable-swap/stable-swap-client", package = "stable-swap-client" }
-marinade-sdk = { path = "../../../marinade-sdk/libs/marinade-sdk" }
+# marinade-sdk = { path = "../../../marinade-sdk/libs/marinade-sdk" }
+marinade-sdk = { git = "https://github.com/jup-ag/marinade-sdk.git", rev = "7eab901fdac376db2a0dec9f70a89157bf1bff1a" }
 spl-stake-pool = { git = "https://github.com/solana-labs/solana-program-library.git", rev = "a3996814cb44eab2834f72113b742c875ac7b1b9", features = [
     "no-entrypoint",
 ] }
