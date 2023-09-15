@@ -5166,6 +5166,7 @@ dependencies = [
 [[package]]
 name = "stable-swap-client"
 version = "1.8.2"
+source = "git+https://github.com/jup-ag/stable-swap.git?rev=c7c9a9d3b5c324695971c6121da027bfb234ab85#c7c9a9d3b5c324695971c6121da027bfb234ab85"
 dependencies = [
  "arrayref",
  "num-derive 0.3.3",
@@ -5177,6 +5178,7 @@ dependencies = [
 [[package]]
 name = "stable-swap-math"
 version = "1.8.2"
+source = "git+https://github.com/jup-ag/stable-swap.git?rev=c7c9a9d3b5c324695971c6121da027bfb234ab85#c7c9a9d3b5c324695971c6121da027bfb234ab85"
 dependencies = [
  "borsh 0.9.3",
  "num-traits",
