@@ -27,7 +27,7 @@ overflow-checks = true
 anchor-lang = "0.28"
 anchor-spl = "0.28"
 # mercurial-vault = { path = "../../../mercurial-vault-sdk/programs/vault" }
-mercurial-vault = { git = "https://github.com/jup-ag/mercurial-vault-sdk", rev = "86922eb15d982fadff56cf4733f6fb4ef4c935e3" }
+mercurial-vault = { git = "https://github.com/jup-ag/mercurial-vault-sdk.git", rev = "86922eb15d982fadff56cf4733f6fb4ef4c935e3" }
 spl-token-swap = { version = "3.0.0", features = ["no-entrypoint"] }
 #meteora-stable-swap-math = "1.8.1"
 #meteora-stable-swap-client = "1.8.1"

@@ -2353,7 +2353,7 @@ dependencies = [
 [[package]]
 name = "mercurial-vault"
 version = "0.4.7"
-source = "git+https://github.com/jup-ag/mercurial-vault-sdk?rev=86922eb15d982fadff56cf4733f6fb4ef4c935e3#86922eb15d982fadff56cf4733f6fb4ef4c935e3"
+source = "git+https://github.com/jup-ag/mercurial-vault-sdk.git?rev=86922eb15d982fadff56cf4733f6fb4ef4c935e3#86922eb15d982fadff56cf4733f6fb4ef4c935e3"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
