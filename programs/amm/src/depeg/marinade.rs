@@ -1,6 +1,7 @@
 use crate::constants::depeg;
 use anchor_lang::prelude::*;
-use marinade_sdk::state::State;
+use borsh::de::BorshDeserialize;
+use marinade_sdk::state::marinade::Marinade as State;
 use std::convert::TryInto;
 
 pub fn get_virtual_price(bytes: &[u8]) -> Option<u64> {

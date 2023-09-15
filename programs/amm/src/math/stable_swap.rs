@@ -80,10 +80,10 @@ impl SwapCurve for StableSwap {
             };
 
         let saber_stable_swap: SaberStableSwap = self.into();
-        let result = saber_stable_swap.swap_to2(
-            upscaled_source_amount,
-            upscaled_swap_source_amount,
-            upscaled_swap_destination_amount,
+        let result = saber_stable_swap.swap_to(
+            upscaled_source_amount.try_into().ok()?,
+            upscaled_swap_source_amount.try_into().ok()?,
+            upscaled_swap_destination_amount.try_into().ok()?,
             &SaberFees {
                 admin_trade_fee_denominator: FEE_DENOMINATOR,
                 admin_withdraw_fee_denominator: FEE_DENOMINATOR,
@@ -94,8 +94,8 @@ impl SwapCurve for StableSwap {
         )?;
 
         let downscaled_destination_amount_swapped = match trade_direction {
-            TradeDirection::AtoB => self.downscale_token_b(result.amount_swapped)?,
-            TradeDirection::BtoA => self.downscale_token_a(result.amount_swapped)?,
+            TradeDirection::AtoB => self.downscale_token_b(result.amount_swapped.into())?,
+            TradeDirection::BtoA => self.downscale_token_a(result.amount_swapped.into())?,
         };
 
         let swap_source_amount: u128 = swap_source_amount.into();
