@@ -11,7 +11,6 @@ pub mod vault_utils;
 
 pub use mercurial_vault::state::Vault;
 pub use spl_stake_pool::state::StakePool;
-pub use meteora_marinade_sdk::state::Marinade;
 
 use crate::context::*;
 use anchor_lang::prelude::*;
