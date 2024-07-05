@@ -36,6 +36,8 @@ import {
   PERMISSIONLESS_AMP,
   STABLE_SWAP_DEFAULT_TRADE_FEE_BPS,
   CONSTANT_PRODUCT_DEFAULT_TRADE_FEE_BPS,
+  METAPLEX_PROGRAM,
+  SEEDS,
 } from './constants';
 import { ConstantProductSwap, StableSwap, SwapCurve, TradeDirection } from './curve';
 import {
@@ -55,6 +57,7 @@ import {
 } from './types';
 import { Amm as AmmIdl, IDL as AmmIDL } from './idl';
 import { TokenInfo } from '@solana/spl-token-registry';
+import Decimal from 'decimal.js';
 
 export const createProgram = (connection: Connection, programId?: string) => {
   const provider = new AnchorProvider(connection, {} as any, AnchorProvider.defaultOptions());
@@ -97,6 +100,7 @@ export const getOrCreateATAInstruction = async (
   tokenMint: PublicKey,
   owner: PublicKey,
   connection: Connection,
+  payer?: PublicKey,
 ): Promise<[PublicKey, TransactionInstruction?]> => {
   let toAccount;
   try {
@@ -109,7 +113,7 @@ export const getOrCreateATAInstruction = async (
         tokenMint,
         toAccount,
         owner,
-        owner,
+        payer || owner,
       );
       return [toAccount, ix];
     }
@@ -119,6 +123,13 @@ export const getOrCreateATAInstruction = async (
     console.error('Error::getOrCreateATAInstruction', e);
     throw e;
   }
+};
+
+export const deriveLockEscrowPda = (pool: PublicKey, owner: PublicKey, ammProgram: PublicKey) => {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from(SEEDS.LOCK_ESCROW), pool.toBuffer(), owner.toBuffer()],
+    ammProgram,
+  );
 };
 
 export const wrapSOLInstruction = (from: PublicKey, to: PublicKey, amount: bigint): TransactionInstruction[] => {
@@ -264,25 +275,40 @@ export const calculatePoolInfo = (
 
   const d = swapCurve.computeD(tokenAAmount, tokenBAmount);
   const virtualPriceBigNum = poolLpSupply.isZero() ? new BN(0) : d.mul(VIRTUAL_PRICE_PRECISION).div(poolLpSupply);
-  const virtualPrice = virtualPriceBigNum.toNumber() / VIRTUAL_PRICE_PRECISION.toNumber();
+  const virtualPrice = new Decimal(virtualPriceBigNum.toString()).div(VIRTUAL_PRICE_PRECISION.toString()).toNumber();
+  const virtualPriceRaw = poolLpSupply.isZero() ? new BN(0) : new BN(1).shln(64).mul(d).div(poolLpSupply);
 
   const poolInformation: PoolInformation = {
     tokenAAmount,
     tokenBAmount,
     virtualPrice,
+    virtualPriceRaw,
   };
 
   return poolInformation;
 };
 
-export const calculateAdminTradingFee = (amount: BN, poolState: PoolState) => {
-  const { ownerTradeFeeDenominator, ownerTradeFeeNumerator } = poolState.fees;
-  return amount.mul(ownerTradeFeeNumerator).div(ownerTradeFeeDenominator);
+export const calculateProtocolTradingFee = (amount: BN, poolState: PoolState): BN => {
+  const { protocolTradeFeeDenominator, protocolTradeFeeNumerator } = poolState.fees;
+  return amount.mul(protocolTradeFeeNumerator).div(protocolTradeFeeDenominator);
 };
 
-export const calculateTradingFee = (amount: BN, poolState: PoolState) => {
+export const calculateTradingFee = (amount: BN, poolState: PoolState): BN => {
   const { tradeFeeDenominator, tradeFeeNumerator } = poolState.fees;
   return amount.mul(tradeFeeNumerator).div(tradeFeeDenominator);
+};
+
+export const calculateUnclaimedLockEscrowFee = (
+  totalLockedAmount: BN,
+  lpPerToken: BN,
+  unclaimedFeePending: BN,
+  currentVirtualPrice: BN,
+): BN => {
+  if (currentVirtualPrice.isZero()) {
+    return new BN(0);
+  }
+  let newFee = totalLockedAmount.mul(currentVirtualPrice.sub(lpPerToken)).div(currentVirtualPrice);
+  return newFee.add(unclaimedFeePending);
 };
 
 /**
@@ -452,22 +478,25 @@ export const calculateSwapQuote = (inTokenMint: PublicKey, inAmountLamport: BN, 
         vaultALpSupply,
         TradeDirection.BToA,
       ];
-  const adminFee = calculateAdminTradingFee(sourceAmount, poolState);
+
   const tradeFee = calculateTradingFee(sourceAmount, poolState);
+  // Protocol fee is a cut of trade fee
+  const protocolFee = calculateProtocolTradingFee(tradeFee, poolState);
+  const tradeFeeAfterProtocolFee = tradeFee.sub(protocolFee);
 
   const sourceVaultWithdrawableAmount = calculateWithdrawableAmount(currentTime, swapSourceVault);
 
   const beforeSwapSourceAmount = swapSourceAmount;
-  const sourceAmountLessAdminFee = sourceAmount.sub(adminFee);
+  const sourceAmountLessProtocolFee = sourceAmount.sub(protocolFee);
 
   // Get vault lp minted when deposit to the vault
   const sourceVaultLp = getUnmintAmount(
-    sourceAmountLessAdminFee,
+    sourceAmountLessProtocolFee,
     sourceVaultWithdrawableAmount,
     swapSourceVaultLpSupply,
   );
 
-  const sourceVaultTotalAmount = sourceVaultWithdrawableAmount.add(sourceAmountLessAdminFee);
+  const sourceVaultTotalAmount = sourceVaultWithdrawableAmount.add(sourceAmountLessProtocolFee);
 
   const afterSwapSourceAmount = getAmountByShare(
     sourceVaultLp.add(swapSourceVaultLpAmount),
@@ -476,7 +505,7 @@ export const calculateSwapQuote = (inTokenMint: PublicKey, inAmountLamport: BN, 
   );
 
   const actualSourceAmount = afterSwapSourceAmount.sub(beforeSwapSourceAmount);
-  let sourceAmountWithFee = actualSourceAmount.sub(tradeFee);
+  let sourceAmountWithFee = actualSourceAmount.sub(tradeFeeAfterProtocolFee);
 
   const { outAmount: destinationAmount, priceImpact } = swapCurve.computeOutAmount(
     sourceAmountWithFee,
@@ -513,7 +542,7 @@ export const calculateSwapQuote = (inTokenMint: PublicKey, inAmountLamport: BN, 
 
   return {
     amountOut: actualDestinationAmount,
-    fee: adminFee.add(tradeFee),
+    fee: tradeFeeAfterProtocolFee,
     priceImpact,
   };
 };
@@ -562,6 +591,33 @@ export async function getTokensMintFromPoolAddress(
     tokenBMint: poolAccount.tokenBMint,
   };
 }
+
+export function deriveMintMetadata(lpMint: PublicKey) {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('metadata'), METAPLEX_PROGRAM.toBuffer(), lpMint.toBuffer()],
+    METAPLEX_PROGRAM,
+  );
+}
+
+export function derivePoolAddressWithConfig(
+  tokenA: PublicKey,
+  tokenB: PublicKey,
+  config: PublicKey,
+  programId: PublicKey,
+) {
+  const [poolPubkey] = PublicKey.findProgramAddressSync(
+    [getFirstKey(tokenA, tokenB), getSecondKey(tokenA, tokenB), config.toBuffer()],
+    programId,
+  );
+
+  return poolPubkey;
+}
+
+export const deriveConfigPda = (index: BN, programId: PublicKey) => {
+  const [configPda] = PublicKey.findProgramAddressSync([Buffer.from('config'), index.toBuffer('le', 8)], programId);
+
+  return configPda;
+};
 
 export function derivePoolAddress(
   connection: Connection,
@@ -622,6 +678,33 @@ export async function checkPoolExists(
   return poolPubkey;
 }
 
+/**
+ * It checks if a pool with config exists by checking if the pool account exists
+ * @param {Connection} connection - Connection - the connection to the Solana cluster
+ * @param {PublicKey} tokenA - TokenInfo
+ * @param {PublicKey} tokenB - TokenInfo
+ * @returns A PublicKey value or undefined.
+ */
+export async function checkPoolWithConfigExists(
+  connection: Connection,
+  tokenA: PublicKey,
+  tokenB: PublicKey,
+  config: PublicKey,
+  opt?: {
+    programId: string;
+  },
+): Promise<PublicKey | undefined> {
+  const { ammProgram } = createProgram(connection, opt?.programId);
+
+  const poolPubkey = derivePoolAddressWithConfig(tokenA, tokenB, config, ammProgram.programId);
+
+  const poolAccount = await ammProgram.account.pool.fetchNullable(poolPubkey);
+
+  if (!poolAccount) return;
+
+  return poolPubkey;
+}
+
 export function chunks<T>(array: T[], size: number): T[][] {
   return Array.apply<number, T[], T[][]>(0, new Array(Math.ceil(array.length / size))).map((_, index) =>
     array.slice(index * size, (index + 1) * size),
@@ -662,7 +745,7 @@ export function getSecondKey(key1: PublicKey, key2: PublicKey) {
   const buf1 = key1.toBuffer();
   const buf2 = key2.toBuffer();
   // Buf1 > buf2
-  if (Buffer.compare(buf1, buf2) == 1) {
+  if (Buffer.compare(buf1, buf2) === 1) {
     return buf2;
   }
   return buf1;
@@ -672,7 +755,7 @@ export function getFirstKey(key1: PublicKey, key2: PublicKey) {
   const buf1 = key1.toBuffer();
   const buf2 = key2.toBuffer();
   // Buf1 > buf2
-  if (Buffer.compare(buf1, buf2) == 1) {
+  if (Buffer.compare(buf1, buf2) === 1) {
     return buf1;
   }
   return buf2;
