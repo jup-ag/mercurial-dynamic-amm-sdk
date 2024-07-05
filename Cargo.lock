@@ -1156,6 +1156,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7144d30dcf0fafbce74250a3963025d8d52177934239851c917d29f1df280c2"
 
 [[package]]
+name = "convert_case"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
+
+[[package]]
 name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1380,6 +1386,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive_more"
+version = "0.99.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f33878137e4dafd7fa914ad4e259e18a4e8e532b9617a2d0150262bf53abfce"
+dependencies = [
+ "convert_case",
+ "proc-macro2 1.0.66",
+ "quote 1.0.33",
+ "rustc_version",
+ "syn 2.0.32",
+]
+
+[[package]]
 name = "dialoguer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1473,7 +1492,7 @@ dependencies = [
  "bincode",
  "dynamic-amm",
  "dynamic-vault",
- "meteora-marinade-sdk",
+ "marinade-sdk",
  "solana-program-test",
  "solana-sdk",
  "spl-stake-pool",
@@ -2346,6 +2365,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "marinade-sdk"
+version = "0.1.0"
+source = "git+https://github.com/jup-ag/marinade-sdk.git?rev=7eab901fdac376db2a0dec9f70a89157bf1bff1a#7eab901fdac376db2a0dec9f70a89157bf1bff1a"
+dependencies = [
+ "borsh 0.10.3",
+ "derive_more",
+ "marinade-sdk-macro",
+ "micro-anchor",
+ "solana-program",
+ "spl-token 3.5.0",
+]
+
+[[package]]
+name = "marinade-sdk-macro"
+version = "0.1.0"
+source = "git+https://github.com/jup-ag/marinade-sdk.git?rev=7eab901fdac376db2a0dec9f70a89157bf1bff1a#7eab901fdac376db2a0dec9f70a89157bf1bff1a"
+dependencies = [
+ "log",
+ "proc-macro2 1.0.66",
+ "quote 1.0.33",
+ "syn 1.0.109",
+ "syn-unnamed-struct",
+]
+
+[[package]]
 name = "memchr"
 version = "2.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2391,14 +2435,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "meteora-marinade-sdk"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e00ce0fa50648cf4ff330b24a0943d759a6260cc03a84db3800183044d6d0a23"
+name = "micro-anchor"
+version = "0.1.0"
+source = "git+https://github.com/jup-ag/marinade-sdk.git?rev=7eab901fdac376db2a0dec9f70a89157bf1bff1a#7eab901fdac376db2a0dec9f70a89157bf1bff1a"
 dependencies = [
  "borsh 0.10.3",
+ "derive_more",
  "solana-program",
- "spl-token 3.5.0",
 ]
 
 [[package]]
@@ -5301,6 +5344,17 @@ dependencies = [
  "proc-macro2 1.0.66",
  "quote 1.0.33",
  "unicode-ident",
+]
+
+[[package]]
+name = "syn-unnamed-struct"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db0794191b3a4553c98f8f5302470618fdd9bd533a8314d06dab0e70a4de0269"
+dependencies = [
+ "proc-macro2 1.0.66",
+ "quote 1.0.33",
+ "syn 1.0.109",
 ]
 
 [[package]]

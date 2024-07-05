@@ -14,7 +14,7 @@ prog_dynamic_amm = { path = "../programs/dynamic-amm", package = "dynamic-amm" }
 prog_dynamic_vault = { path = "../programs/dynamic-vault", package = "dynamic-vault" }
 anyhow = "1.0.57"
 spl-token-swap = "3.0.0"
-meteora-marinade-sdk = { version = "0.1.0", features = ["cpi"] }
+marinade-sdk = { git = "https://github.com/jup-ag/marinade-sdk.git", rev = "7eab901fdac376db2a0dec9f70a89157bf1bff1a" }
 spl-stake-pool = { git = "https://github.com/solana-labs/solana-program-library", rev = "cd79bba17331235ab489bae56600043ea853c70b", features = [
     "no-entrypoint",
 ] }
