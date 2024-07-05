@@ -10,6 +10,7 @@ pub use prog_dynamic_amm::constants;
 pub use prog_dynamic_amm::error::PoolError;
 pub use prog_dynamic_amm::state::Pool;
 pub use prog_dynamic_vault::state::Vault;
+pub use spl_stake_pool::state::StakePool;
 use spl_token_swap::curve::calculator::TradeDirection;
 use std::collections::HashMap;
 
