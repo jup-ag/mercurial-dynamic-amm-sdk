@@ -3,6 +3,26 @@ use crate::constants;
 use anchor_lang::prelude::*;
 use std::fmt::Debug;
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[repr(u8)]
+/// Type of the activation
+pub enum ActivationType {
+    Slot,
+    Timestamp,
+}
+
+impl TryFrom<u8> for ActivationType {
+    type Error = String;
+
+    fn try_from(s: u8) -> std::result::Result<ActivationType, String> {
+        match s {
+            0 => Ok(ActivationType::Slot),
+            1 => Ok(ActivationType::Timestamp),
+            _ => Err("Invalid value".to_string()),
+        }
+    }
+}
+
 #[derive(AnchorSerialize, AnchorDeserialize, Default, Debug, Clone, Copy)]
 /*
    1. [T; 32], 32 size chosen because it is natively supported by Anchor SeDer, and it support from 1 to 32 continuously without breaking.
@@ -26,14 +46,14 @@ use std::fmt::Debug;
 /// Padding for future pool fields
 pub struct Padding {
     /// Padding 0
-    pub padding_0: [u8; 15], // 15
+    pub padding_0: [u8; 14], // 14
     /// Padding 1
     pub padding: [u128; 24], // 384
 }
 
 impl Padding {
     /// Space for rental
-    pub const SPACE: usize = 399;
+    pub const SPACE: usize = 398;
 }
 /// Host fee
 pub struct HostFee<'c, 'info> {
@@ -94,7 +114,7 @@ pub struct Pool {
     /// Total locked lp token
     pub total_locked_lp: u64,
     /// Alpha vault config
-    pub alpha_vault: AlphaVault,
+    pub bootstrapping: Bootstrapping,
     /// Padding for future pool field
     pub padding: Padding, // 512 Refer: curve_type.rs for the test
     /// The type of the swap curve supported by the pool.
@@ -103,13 +123,16 @@ pub struct Pool {
 }
 
 #[derive(Copy, Clone, Debug, AnchorSerialize, AnchorDeserialize, InitSpace, Default)]
-pub struct AlphaVault {
-    /// Activation slot
-    pub activation_slot: u64,
-    /// Whitelisted vault to be able to buy pool before open slot
+pub struct Bootstrapping {
+    /// Activation point
+    pub activation_point: u64,
+    /// Whitelisted vault to be able to buy pool before activation_point
     pub whitelisted_vault: Pubkey,
-    /// Need to store pool creator in lauch pool, so they can modify liquidity before activation slot
+    #[deprecated]
+    /// Need to store pool creator in launch pool, so they can modify liquidity before activation point
     pub pool_creator: Pubkey,
+    /// Activation type, 0 means by slot, 1 means by timestamp
+    pub activation_type: u8,
 }
 
 #[account]
@@ -285,12 +308,16 @@ pub enum DepegType {
 #[derive(InitSpace, Debug)]
 pub struct Config {
     pub pool_fees: PoolFees,
-    pub activation_duration_in_slot: u64,
+    pub activation_duration: u64,
     pub vault_config_key: Pubkey,
-    pub _padding: [u8; 260],
+    pub pool_creator_authority: Pubkey,
+    // activation type
+    pub activation_type: u8,
+    pub _padding: [u8; 227],
 }
 
-pub struct AlphaVaultConfig {
-    pub activation_duration_in_slot: u64,
+pub struct BootstrappingConfig {
+    pub activation_duration: u64,
     pub vault_config_key: Pubkey,
+    pub activation_type: u8,
 }
