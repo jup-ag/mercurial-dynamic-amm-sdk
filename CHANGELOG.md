@@ -19,16 +19,159 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-## @mercurial-finance/dynamic-amm-sdk [0.4.21] - PR #117
+## dynamic-amm-quote [0.0.3] - PR[#151](https://github.com/mercurial-finance/mercurial-dynamic-amm-sdk/pull/151)
+
+### Changed
+
+- Throw error if the pool is disabled, or not activated for trading yet.
+
+## dynamic-amm [0.6.0] - PR[#151](https://github.com/mercurial-finance/mercurial-dynamic-amm-sdk/pull/151)
 
 ### Added
 
-- Introduced a new lock escrow mechanism supported by the program.
-- `AmmImpl.getLockedAtaAmount` to retrieve locked LP amounts from the ATA mechanism (old mechanism).
-- `AmmImpl.getLockedLpAmount` to fetch locked LP amounts from two versions of locking: ATA (old) and escrow (new), and then sum them.
-- `AmmImpl.getUserLockEscrow` to obtain the user's lock escrow state.
-- `AmmImpl.lockLiquidity` to lock the user's LP into the lock escrow.
-- `AmmImpl.claimLockFee` to claim fees from locked LPs in the lock escrow.
+- Added `activation_type` field to `Bootstrapping` (previously known as `AlphaVault`). Used to determine whether the pool is activated by slot or timestamp.
+- Added `update_activation_point` endpoint. Admin only.
+- Added `initialize_permissionless_constant_product_pool_with_config2` endpoint. Allow user to create constant product pool with `activation_point` set earlier than the default `activation_point` derived from the config.
+
+### Changed
+
+- Renamed `AlphaVault` structure to `Bootstrapping`
+- Renamed `AlphaVaultConfig` to `BootstrappingConfig`
+- Renamed `activation_duration_in_slot` to `activation_duration`. The duration will be in slot or timestamp, based on `activation_type`
+
+### Deprecated
+
+- `pool_creator` field of `AlphaVault` structure.
+
+## @mercurial-finance/dynamic-amm-sdk [1.1.0] - PR[#151](https://github.com/mercurial-finance/mercurial-dynamic-amm-sdk/pull/151)
+
+### Added
+
+- Added `createPermissionlessConstantProductPoolWithConfig2`. Allow user to create constant product pool with `activation_point` set earlier than the default `activation_point` derived from the config.
+
+### Changed
+
+- `createConfig` require new parameter `ActivationType`
+- Renamed `AlphaVault` to `Bootstrapping`
+- Renamed `ActivationDurationInSlot` to `ActivationDuration`
+- `calculateSwapQuote` require new parameter `currentSlot`
+- Swap quote throw error if the pool is disabled, or not activated for trading yet.
+
+## @mercurial-finance/dynamic-amm-sdk [1.0.5] - PR [#155](https://github.com/mercurial-finance/mercurial-dynamic-amm-sdk/pull/155)
+
+### Changed
+
+- update vault-sdk version
+
+## @mercurial-finance/dynamic-amm-sdk [1.0.4] - PR [#154](https://github.com/mercurial-finance/mercurial-dynamic-amm-sdk/pull/154)
+
+### Changed
+
+- optimize `create` & `createMultiple` function for rpc call
+
+## @mercurial-finance/dynamic-amm-sdk [1.0.2] - PR [#153](https://github.com/mercurial-finance/mercurial-dynamic-amm-sdk/pull/153)
+
+### Fixed
+
+- `create` function not working
+
+## dynamic-amm [0.5.0] - PR[#149](https://github.com/mercurial-finance/mercurial-dynamic-amm-sdk/pull/149)
+
+### Changed
+
+- Rename `admin` to `fee_operator` in `set_pool_fee` account context.
+- Removed deprecated field `admin` in pool state. It has been replaced by `fee_last_updated_at`.
+
+## @mercurial-finance/dynamic-amm-sdk [1.0.2] - PR[#149](https://github.com/mercurial-finance/mercurial-dynamic-amm-sdk/pull/149)
+
+### Changed
+
+- Update idl
+
+## @mercurial-finance/dynamic-amm-sdk [1.0.1] - PR [#150](https://github.com/mercurial-finance/mercurial-dynamic-amm-sdk/pull/150)
+
+### Added
+
+- `searchPoolsByToken`, search pool by passing token mint address
+
+## @mercurial-finance/dynamic-amm-sdk [1.0.0] - PR [#148](https://github.com/mercurial-finance/mercurial-dynamic-amm-sdk/pull/148)
+
+### Changed
+
+- Refactor `AmmImpl.create` function to use only 2 arguments: provider, poolAddress
+- Add 2 examples for ts-client: swap, get_pool_info
+- Update @mercurial-finance/vault-sdk to version 2.0.0
+- Use tokenMint instead of tokenInfo in most cases
+- Provide address and decimals in tokenAMint and tokenBMint
+- Differentiate tokenMint and tokenAddress(PublickKey Only)
+
+## @mercurial-finance/dynamic-amm-sdk [0.5.0] - PR [#144](https://github.com/mercurial-finance/mercurial-dynamic-amm-sdk/pull/144)
+
+### Changed
+
+- Pump "@solana/spl-token" to 0.4.6 and various relevant packages
+
+## @mercurial-finance/dynamic-amm-sdk [0.4.13] - PR #147
+
+### Deprecated
+
+- deprecated field `admin` in pool state
+
+### Changed
+
+- remove endpoint `transfer_admin`
+- All permissioned operations now can be signed from any address in the group of admins instead of a single admin key
+
+## @mercurial-finance/dynamic-amm-sdk [0.4.29] - PR #146
+
+### Fixed
+
+- Fixed `Invalid option nextEpochFee` error when decode LST pool stake pool nextEpochFee
+
+## @mercurial-finance/dynamic-amm-sdk [0.4.28] - PR #145
+
+### Changed
+
+- `getUserLockEscrow` no longer need to pass `lockEscrowAccount` as param
+
+## @mercurial-finance/dynamic-amm-sdk [0.4.27] - PR #142
+
+### Added
+
+- Use `getPoolConfigsWithPoolCreatorAuthority` to retrieve the pool configuration for a specific user. When the pool configuration returned from `getPoolConfigsWithPoolCreatorAuthority` is passed into `createPermissionlessConstantProductPoolWithConfig`, only that user can create pools. Please contact meteora team if you're not whitelisted for the config.
+
+## @mercurial-finance/dynamic-amm-sdk [0.4.26] - PR #139
+
+### Changed
+
+-`lockLiquidity` function is able to specify feePayer
+
+## @mercurial-finance/dynamic-amm-sdk [0.4.25] - PR #132
+
+### Added
+
+- `getPoolConfig` to get pool config based on config pubkey
+- `checkPoolWithConfigsExists` now accepts array of config pubkey
+
+## @mercurial-finance/dynamic-amm-sdk [0.4.23] - PR #125
+
+### Changed
+
+- Protocol fee is now part of LP trade fee.
+- update swap function `referralToken` param to `referralOwner`
+
+### Added
+
+- `AmmImpl.createPermissionlessConstantProductPoolWithConfig` to create constant product pool based on `config` account.
+- `AmmImpl.getFeeConfigurations` to get all fee configurations to be used in `AmmImpl.createPermissionlessConstantProductPoolWithConfig`
+
+## @mercurial-finance/dynamic-amm-sdk [0.4.22] - PR #117
+
+### Added
+
+- `swap` method param `referrerToken` is non-ATA address.
+- `AmmImpl.lockLiquidityNewlyCreatedPool` method to help lock liquidity for pool that haven't been created yet
+- `skipAta` flag to help skipping check for create ata when creating the pool in `AmmImpl.createPermissionlessPool`
 
 ## dynamic-amm [0.1.1] - PR #125
 
@@ -48,14 +191,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `MigrateFeeAccount` and `SetAdminFeeAccount` event
 
-## @mercurial-finance/dynamic-amm-sdk [0.4.22] - PR #117
+## @mercurial-finance/dynamic-amm-sdk [0.4.21] - PR #117
 
 ### Added
-- `swap` method param `referrerToken` is non-ATA address.
-- `AmmImpl.lockLiquidityNewlyCreatedPool` method to help lock liquidity for pool that haven't been created yet
-- `skipAta` flag to help skipping check for create ata when creating the pool in `AmmImpl.createPermissionlessPool`
 
-## @mercurial-finance/dynamic-amm-sdk [0.4.23] - PR #125
+- Introduced a new lock escrow mechanism supported by the program.
+- `AmmImpl.getLockedAtaAmount` to retrieve locked LP amounts from the ATA mechanism (old mechanism).
+- `AmmImpl.getLockedLpAmount` to fetch locked LP amounts from two versions of locking: ATA (old) and escrow (new), and then sum them.
+- `AmmImpl.getUserLockEscrow` to obtain the user's lock escrow state.
+- `AmmImpl.lockLiquidity` to lock the user's LP into the lock escrow.
+- `AmmImpl.claimLockFee` to claim fees from locked LPs in the lock escrow.
+
+## dynamic-amm [0.1.2] - PR #134
 
 ### Changed
 

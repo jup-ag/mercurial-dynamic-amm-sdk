@@ -1,28 +1,18 @@
-import { AnchorProvider, BN } from '@project-serum/anchor';
-import { TokenInfo, TokenListProvider } from '@solana/spl-token-registry';
-import { Cluster, Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, clusterApiUrl } from '@solana/web3.js';
-import {
-  CONSTANT_PRODUCT_DEFAULT_TRADE_FEE_BPS,
-  DEFAULT_SLIPPAGE,
-  DEVNET_COIN,
-  DEVNET_POOL,
-  MAINNET_POOL,
-  PROGRAM_ID,
-  STAGING_PROGRAM_ID,
-} from '../constants';
+import { AnchorProvider, BN } from '@coral-xyz/anchor';
+import { TokenInfo } from '@solana/spl-token-registry';
+import { Connection, Keypair, PublicKey } from '@solana/web3.js';
+import { CONSTANT_PRODUCT_DEFAULT_TRADE_FEE_BPS, DEFAULT_SLIPPAGE, PROGRAM_ID } from '../constants';
 import AmmImpl from '../index';
-import { calculateSwapQuote, derivePoolAddress, derivePoolAddressWithConfig, getOnchainTime } from '../utils';
-import { airDropSol, airDropSolIfBalanceNotEnough, getOrCreateATA, mockWallet } from './utils';
-import { TOKEN_PROGRAM_ID, Token } from '@solana/spl-token';
+import { derivePoolAddress, derivePoolAddressWithConfig, getOnchainTime } from '../utils';
+import { airDropSol, getOrCreateATA, mockWallet } from './utils';
+import { createMint, mintTo } from '@solana/spl-token';
+import { ActivationType } from '../types';
 
 describe('Constant product pool', () => {
   const connection = new Connection('http://127.0.0.1:8899', 'confirmed');
   const provider = new AnchorProvider(connection, mockWallet, {
     commitment: connection.commitment,
   });
-
-  let btcToken: Token;
-  let usdcToken: Token;
 
   let btcTokenInfo: TokenInfo;
   let usdcTokenInfo: TokenInfo;
@@ -44,39 +34,22 @@ describe('Constant product pool', () => {
 
   beforeAll(async () => {
     await airDropSol(connection, mockWallet.publicKey, 10);
+    BTC = await createMint(provider.connection, mockWallet.payer, mockWallet.publicKey, null, btcDecimal);
 
-    btcToken = await Token.createMint(
-      provider.connection,
-      mockWallet.payer,
-      mockWallet.publicKey,
-      null,
-      btcDecimal,
-      TOKEN_PROGRAM_ID,
-    );
-
-    BTC = btcToken.publicKey;
     btcTokenInfo = {
       chainId: 101,
-      address: btcToken.publicKey.toString(),
+      address: BTC.toString(),
       symbol: 'BTC',
       decimals: btcDecimal,
       name: 'Bitcoin',
       logoURI: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png',
     };
 
-    usdcToken = await Token.createMint(
-      provider.connection,
-      mockWallet.payer,
-      mockWallet.publicKey,
-      null,
-      usdcDecimal,
-      TOKEN_PROGRAM_ID,
-    );
+    USDC = await createMint(provider.connection, mockWallet.payer, mockWallet.publicKey, null, usdcDecimal);
 
-    USDC = usdcToken.publicKey;
     usdcTokenInfo = {
       chainId: 101,
-      address: usdcToken.publicKey.toString(),
+      address: USDC.toString(),
       symbol: 'USDC',
       decimals: usdcDecimal,
       name: 'USD Coin',
@@ -86,8 +59,34 @@ describe('Constant product pool', () => {
     mockWalletBtcATA = await getOrCreateATA(connection, BTC, mockWallet.publicKey, mockWallet.payer);
     mockWalletUsdcATA = await getOrCreateATA(connection, USDC, mockWallet.publicKey, mockWallet.payer);
 
-    await btcToken.mintTo(mockWalletBtcATA, mockWallet.payer, [], 10000 * btcMultiplier);
-    await usdcToken.mintTo(mockWalletUsdcATA, mockWallet.payer, [], 1000000 * usdcMultiplier);
+    await mintTo(
+      provider.connection,
+      mockWallet.payer,
+      BTC,
+      mockWalletBtcATA,
+      mockWallet.payer.publicKey,
+      10000 * btcMultiplier,
+      [],
+      {
+        commitment: 'confirmed',
+      },
+    );
+
+    await mintTo(
+      provider.connection,
+      mockWallet.payer,
+      USDC,
+      mockWalletUsdcATA,
+      mockWallet.payer.publicKey,
+      1000000 * usdcMultiplier,
+      [],
+      {
+        commitment: 'confirmed',
+      },
+    );
+
+    // await btcToken.mintTo(mockWalletBtcATA, mockWallet.payer, [], 10000 * btcMultiplier);
+    // await usdcToken.mintTo(mockWalletUsdcATA, mockWallet.payer, [], 1000000 * usdcMultiplier);
   });
 
   describe('With fee tier', () => {
@@ -112,12 +111,12 @@ describe('Constant product pool', () => {
       await connection.confirmTransaction(txHash, 'finalized');
 
       const poolKey = derivePoolAddress(connection, btcTokenInfo, usdcTokenInfo, false, tradeFeeBps);
-      cpPoolFeeTiered = await AmmImpl.create(connection, poolKey, btcTokenInfo, usdcTokenInfo);
+      cpPoolFeeTiered = await AmmImpl.create(connection, poolKey);
 
       expect(poolKey.toBase58()).toBe(cpPoolFeeTiered.address.toBase58());
       expect(cpPoolFeeTiered.isStablePool).toBe(false);
-      expect(cpPoolFeeTiered.tokenA.address.toString()).toBe(BTC.toString());
-      expect(cpPoolFeeTiered.tokenB.address.toString()).toBe(USDC.toString());
+      expect(cpPoolFeeTiered.tokenAMint.address.toString()).toBe(BTC.toString());
+      expect(cpPoolFeeTiered.tokenBMint.address.toString()).toBe(USDC.toString());
     });
 
     test('Get pool mint and supply', async () => {
@@ -217,8 +216,8 @@ describe('Constant product pool', () => {
 
     test('Swap A → B', async () => {
       await cpPoolFeeTiered.updateState();
-      const inAmountLamport = new BN(0.1 * 10 ** cpPoolFeeTiered.tokenA.decimals);
-      const inTokenMint = new PublicKey(cpPoolFeeTiered.tokenA.address);
+      const inAmountLamport = new BN(0.1 * 10 ** cpPoolFeeTiered.tokenAMint.decimals);
+      const inTokenMint = new PublicKey(cpPoolFeeTiered.tokenAMint.address);
 
       const { swapOutAmount, minSwapOutAmount } = cpPoolFeeTiered.getSwapQuote(
         inTokenMint,
@@ -251,8 +250,8 @@ describe('Constant product pool', () => {
 
     test('Swap B → A', async () => {
       await cpPoolFeeTiered.updateState();
-      const inAmountLamport = new BN(0.1 * 10 ** cpPoolFeeTiered.tokenB.decimals);
-      const inTokenMint = new PublicKey(cpPoolFeeTiered.tokenB.address);
+      const inAmountLamport = new BN(0.1 * 10 ** cpPoolFeeTiered.tokenBMint.decimals);
+      const inTokenMint = new PublicKey(cpPoolFeeTiered.tokenBMint.address);
 
       const { swapOutAmount, minSwapOutAmount } = cpPoolFeeTiered.getSwapQuote(
         inTokenMint,
@@ -295,6 +294,8 @@ describe('Constant product pool', () => {
         new BN(protocolFeeBps),
         PublicKey.default,
         new BN(0),
+        PublicKey.default,
+        ActivationType.Slot,
       );
       transaction.sign(mockWallet.payer);
       const txHash = await connection.sendRawTransaction(transaction.serialize());
@@ -310,8 +311,8 @@ describe('Constant product pool', () => {
       const transactions = await AmmImpl.createPermissionlessConstantProductPoolWithConfig(
         connection,
         mockWallet.publicKey,
-        btcTokenInfo,
-        usdcTokenInfo,
+        new PublicKey(btcTokenInfo.address),
+        new PublicKey(usdcTokenInfo.address),
         btcDepositAmount,
         usdcDepositAmount,
         configs[0].publicKey,
@@ -329,12 +330,12 @@ describe('Constant product pool', () => {
         configs[0].publicKey,
         new PublicKey(PROGRAM_ID),
       );
-      cpPoolConfig = await AmmImpl.create(connection, poolKey, btcTokenInfo, usdcTokenInfo);
+      cpPoolConfig = await AmmImpl.create(connection, poolKey);
 
       expect(poolKey.toBase58()).toBe(cpPoolConfig.address.toBase58());
       expect(cpPoolConfig.isStablePool).toBe(false);
-      expect(cpPoolConfig.tokenA.address.toString()).toBe(BTC.toString());
-      expect(cpPoolConfig.tokenB.address.toString()).toBe(USDC.toString());
+      expect(cpPoolConfig.tokenAMint.address.toString()).toBe(BTC.toString());
+      expect(cpPoolConfig.tokenBMint.address.toString()).toBe(USDC.toString());
       const poolFees = cpPoolConfig.poolState.fees;
       expect(poolFees.tradeFeeNumerator.gt(new BN(0))).toBe(true);
       expect(poolFees.protocolTradeFeeNumerator.gt(new BN(0))).toBe(true);
@@ -437,8 +438,8 @@ describe('Constant product pool', () => {
 
     test('Swap A → B', async () => {
       await cpPoolConfig.updateState();
-      const inAmountLamport = new BN(0.1 * 10 ** cpPoolConfig.tokenA.decimals);
-      const inTokenMint = new PublicKey(cpPoolConfig.tokenA.address);
+      const inAmountLamport = new BN(0.1 * 10 ** cpPoolConfig.tokenAMint.decimals);
+      const inTokenMint = new PublicKey(cpPoolConfig.tokenAMint.address);
 
       const { swapOutAmount, minSwapOutAmount } = cpPoolConfig.getSwapQuote(
         inTokenMint,
@@ -471,8 +472,8 @@ describe('Constant product pool', () => {
 
     test('Swap B → A', async () => {
       await cpPoolConfig.updateState();
-      const inAmountLamport = new BN(0.1 * 10 ** cpPoolConfig.tokenB.decimals);
-      const inTokenMint = new PublicKey(cpPoolConfig.tokenB.address);
+      const inAmountLamport = new BN(0.1 * 10 ** cpPoolConfig.tokenBMint.decimals);
+      const inTokenMint = new PublicKey(cpPoolConfig.tokenBMint.address);
 
       const { swapOutAmount, minSwapOutAmount } = cpPoolConfig.getSwapQuote(
         inTokenMint,
@@ -505,8 +506,8 @@ describe('Constant product pool', () => {
 
     test('Swap with referral', async () => {
       await cpPoolConfig.updateState();
-      const inAmountLamport = new BN(10 * 10 ** cpPoolConfig.tokenA.decimals);
-      const inTokenMint = new PublicKey(cpPoolConfig.tokenA.address);
+      const inAmountLamport = new BN(10 * 10 ** cpPoolConfig.tokenAMint.decimals);
+      const inTokenMint = new PublicKey(cpPoolConfig.tokenAMint.address);
 
       const { swapOutAmount, minSwapOutAmount } = cpPoolConfig.getSwapQuote(
         inTokenMint,

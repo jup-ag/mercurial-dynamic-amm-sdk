@@ -1,11 +1,11 @@
-import { AnchorProvider, BN } from '@project-serum/anchor';
+import { AnchorProvider, BN } from '@coral-xyz/anchor';
 import { TokenInfo } from '@solana/spl-token-registry';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { DEFAULT_SLIPPAGE, MAINNET_POOL, STABLE_SWAP_DEFAULT_TRADE_FEE_BPS } from '../constants';
 import AmmImpl from '../index';
 import { derivePoolAddress } from '../utils';
 import { airDropSol, getOrCreateATA, mockWallet } from './utils';
-import { TOKEN_PROGRAM_ID, Token } from '@solana/spl-token';
+import { createMint, mintTo } from '@solana/spl-token';
 
 export const solTokenInfo: TokenInfo = {
   chainId: 101,
@@ -29,9 +29,6 @@ const provider = new AnchorProvider(connection, mockWallet, {
 });
 
 describe('Stable Swap pool', () => {
-  let usdtToken: Token;
-  let usdcToken: Token;
-
   let usdtTokenInfo: TokenInfo;
   let usdcTokenInfo: TokenInfo;
 
@@ -52,38 +49,21 @@ describe('Stable Swap pool', () => {
   beforeAll(async () => {
     await airDropSol(connection, mockWallet.publicKey, 10);
 
-    usdtToken = await Token.createMint(
-      provider.connection,
-      mockWallet.payer,
-      mockWallet.publicKey,
-      null,
-      usdtDecimal,
-      TOKEN_PROGRAM_ID,
-    );
+    USDT = await createMint(provider.connection, mockWallet.payer, mockWallet.publicKey, null, usdtDecimal);
 
-    USDT = usdtToken.publicKey;
     usdtTokenInfo = {
       chainId: 101,
-      address: usdtToken.publicKey.toString(),
+      address: USDT.toString(),
       symbol: 'USDT',
       decimals: usdtDecimal,
       name: 'Tether USD',
       logoURI: 'https://assets.coingecko.com/coins/images/325/large/Tether.png',
     };
 
-    usdcToken = await Token.createMint(
-      provider.connection,
-      mockWallet.payer,
-      mockWallet.publicKey,
-      null,
-      usdcDecimal,
-      TOKEN_PROGRAM_ID,
-    );
-
-    USDC = usdcToken.publicKey;
+    USDC = await createMint(provider.connection, mockWallet.payer, mockWallet.publicKey, null, usdcDecimal);
     usdcTokenInfo = {
       chainId: 101,
-      address: usdcToken.publicKey.toString(),
+      address: USDC.toString(),
       symbol: 'USDC',
       decimals: usdcDecimal,
       name: 'USD Coin',
@@ -93,8 +73,31 @@ describe('Stable Swap pool', () => {
     mockWalletUsdtATA = await getOrCreateATA(connection, USDT, mockWallet.publicKey, mockWallet.payer);
     mockWalletUsdcATA = await getOrCreateATA(connection, USDC, mockWallet.publicKey, mockWallet.payer);
 
-    await usdtToken.mintTo(mockWalletUsdtATA, mockWallet.payer, [], 1000000 * usdtMultiplier);
-    await usdcToken.mintTo(mockWalletUsdcATA, mockWallet.payer, [], 1000000 * usdcMultiplier);
+    await mintTo(
+      provider.connection,
+      mockWallet.payer,
+      USDT,
+      mockWalletUsdtATA,
+      mockWallet.payer.publicKey,
+      1000000 * usdtMultiplier,
+      [],
+      {
+        commitment: 'confirmed',
+      },
+    );
+
+    await mintTo(
+      provider.connection,
+      mockWallet.payer,
+      USDC,
+      mockWalletUsdcATA,
+      mockWallet.payer.publicKey,
+      1000000 * usdcMultiplier,
+      [],
+      {
+        commitment: 'confirmed',
+      },
+    );
   });
 
   describe('With fee tier', () => {
@@ -119,12 +122,12 @@ describe('Stable Swap pool', () => {
       await connection.confirmTransaction(txHash, 'finalized');
 
       const poolKey = derivePoolAddress(connection, usdtTokenInfo, usdcTokenInfo, true, tradeFeeBps);
-      stableSwapFeeTiered = await AmmImpl.create(connection, poolKey, usdtTokenInfo, usdcTokenInfo);
+      stableSwapFeeTiered = await AmmImpl.create(connection, poolKey);
 
       expect(poolKey.toBase58()).toBe(stableSwapFeeTiered.address.toBase58());
       expect(stableSwapFeeTiered.isStablePool).toBe(true);
-      expect(stableSwapFeeTiered.tokenA.address.toString()).toBe(USDT.toString());
-      expect(stableSwapFeeTiered.tokenB.address.toString()).toBe(USDC.toString());
+      expect(stableSwapFeeTiered.tokenAMint.address.toString()).toBe(USDT.toString());
+      expect(stableSwapFeeTiered.tokenBMint.address.toString()).toBe(USDC.toString());
     });
 
     test('Get pool mint and supply', async () => {
@@ -305,8 +308,8 @@ describe('Stable Swap pool', () => {
 
     test('Swap A → B', async () => {
       await stableSwapFeeTiered.updateState();
-      const inAmountLamport = new BN(0.1 * 10 ** stableSwapFeeTiered.tokenA.decimals);
-      const inTokenMint = new PublicKey(stableSwapFeeTiered.tokenA.address);
+      const inAmountLamport = new BN(0.1 * 10 ** stableSwapFeeTiered.tokenAMint.decimals);
+      const inTokenMint = new PublicKey(stableSwapFeeTiered.tokenAMint.address);
 
       const { swapOutAmount, minSwapOutAmount } = stableSwapFeeTiered.getSwapQuote(
         inTokenMint,
@@ -344,8 +347,8 @@ describe('Stable Swap pool', () => {
 
     test('Swap B → A', async () => {
       await stableSwapFeeTiered.updateState();
-      const inAmountLamport = new BN(0.1 * 10 ** stableSwapFeeTiered.tokenB.decimals);
-      const inTokenMint = new PublicKey(stableSwapFeeTiered.tokenB.address);
+      const inAmountLamport = new BN(0.1 * 10 ** stableSwapFeeTiered.tokenBMint.decimals);
+      const inTokenMint = new PublicKey(stableSwapFeeTiered.tokenBMint.address);
 
       const { swapOutAmount, minSwapOutAmount } = stableSwapFeeTiered.getSwapQuote(
         inTokenMint,
@@ -398,7 +401,7 @@ describe('LST pool', () => {
       mockWallet.payer,
     );
 
-    lstPool = await AmmImpl.create(connection, MAINNET_POOL.SOL_MSOL, solTokenInfo, msolTokenInfo);
+    lstPool = await AmmImpl.create(connection, MAINNET_POOL.SOL_MSOL);
   });
 
   test('Is LST', () => {

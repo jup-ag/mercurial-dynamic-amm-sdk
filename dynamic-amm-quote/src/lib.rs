@@ -5,14 +5,10 @@ use crate::depeg::update_base_virtual_price;
 use crate::math::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, TokenAccount};
-use anyhow::{ensure, Context};
-pub use prog_dynamic_amm::constants;
-pub use prog_dynamic_amm::error;
+use anyhow::{anyhow, ensure, Context};
 use prog_dynamic_amm::error::PoolError;
-pub use prog_dynamic_amm::state;
-use prog_dynamic_amm::state::Pool;
-pub use prog_dynamic_vault::state::Vault;
-pub use spl_stake_pool::state::StakePool;
+use prog_dynamic_amm::state::{ActivationType, Pool};
+use prog_dynamic_vault::state::Vault;
 use spl_token_swap::curve::calculator::TradeDirection;
 use std::collections::HashMap;
 
@@ -78,13 +74,19 @@ pub fn compute_quote(
         stake_data,
     } = quote_data;
 
-    let current_slot = clock.slot;
-    if pool.alpha_vault.whitelisted_vault.ne(&Pubkey::default()) {
-        ensure!(
-            pool.alpha_vault.activation_slot >= current_slot,
-            "Swap is disabled"
-        );
-    }
+    let activation_type =
+        ActivationType::try_from(pool.bootstrapping.activation_type).map_err(|e| anyhow!(e))?;
+
+    let current_point = match activation_type {
+        ActivationType::Slot => clock.slot,
+        ActivationType::Timestamp => clock.unix_timestamp as u64,
+    };
+
+    ensure!(pool.enabled, "Pool disabled");
+    ensure!(
+        current_point >= pool.bootstrapping.activation_point,
+        "Swap is disabled"
+    );
 
     update_base_virtual_price(&mut pool, &clock, stake_data)?;
 
