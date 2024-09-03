@@ -6,9 +6,14 @@ use crate::math::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, TokenAccount};
 use anyhow::{anyhow, ensure, Context};
+pub use prog_dynamic_amm::constants;
+pub use prog_dynamic_amm::error;
 use prog_dynamic_amm::error::PoolError;
-use prog_dynamic_amm::state::{ActivationType, Pool};
-use prog_dynamic_vault::state::Vault;
+pub use prog_dynamic_amm::state;
+use prog_dynamic_amm::state::ActivationType;
+use prog_dynamic_amm::state::Pool;
+pub use prog_dynamic_vault::state::Vault;
+pub use spl_stake_pool::state::StakePool;
 use spl_token_swap::curve::calculator::TradeDirection;
 use std::collections::HashMap;
 
