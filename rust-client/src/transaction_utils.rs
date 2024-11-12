@@ -28,7 +28,7 @@ pub fn parse_event_log<
             if log_buf.is_ok() {
                 let log_buf = log_buf.ok()?;
                 // Check for event discriminator, it is a 8-byte prefix
-                if log_buf[0..8] == T::discriminator() {
+                if log_buf[0..8] == *T::DISCRIMINATOR {
                     // Skip event discriminator when deserialize
                     return T::try_from_slice(&log_buf[8..]).ok();
                 }
