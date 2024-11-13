@@ -16,3 +16,5 @@ anchor-client = "0.30.1"
 anchor-lang = { git = "https://github.com/coral-xyz/anchor.git", rev = "e4f5d43a062a408213e6e47a79088dec847fc6e7" }
 anchor-spl = { git = "https://github.com/coral-xyz/anchor.git", rev = "e4f5d43a062a408213e6e47a79088dec847fc6e7" }
 anchor-client = { git = "https://github.com/coral-xyz/anchor.git", rev = "e4f5d43a062a408213e6e47a79088dec847fc6e7" }
+spl-stake-pool = { git = "https://github.com/jup-ag/solana-program-library.git", rev = "92d6fa7ea8dd5576d9b4737c858d351ec8f32605" }
+spl-token-swap = { git = "https://github.com/jup-ag/solana-program-library.git", rev = "92d6fa7ea8dd5576d9b4737c858d351ec8f32605" }
