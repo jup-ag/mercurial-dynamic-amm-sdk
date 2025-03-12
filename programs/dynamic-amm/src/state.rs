@@ -1,5 +1,5 @@
 //! Pool account state
-use crate::constants;
+use crate::constants::{self, FEE_CURVE_POINT_NUMBER};
 use anchor_lang::prelude::*;
 use std::fmt::Debug;
 
@@ -26,9 +26,11 @@ use std::fmt::Debug;
 /// Padding for future pool fields
 pub struct Padding {
     /// Padding 0
-    pub padding_0: [u8; 14], // 14
+    pub padding_0: [u8; 6], // 6
     /// Padding 1
-    pub padding: [u128; 24], // 384
+    pub padding_1: [u64; 12], // 96
+    /// Padding 2
+    pub padding_2: [u64; 21], // 168
 }
 
 /// Host fee
@@ -50,6 +52,23 @@ pub enum PoolType {
 impl Default for PoolType {
     fn default() -> Self {
         PoolType::Permissioned
+    }
+}
+
+/// Fee curve type
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, InitSpace)]
+pub enum FeeCurveType {
+    /// No dynamic fee
+    None,
+    /// Flat
+    Flat,
+    /// Linear (we dont allow this fee curve type now)
+    Linear,
+}
+
+impl Default for FeeCurveType {
+    fn default() -> Self {
+        FeeCurveType::None
     }
 }
 
@@ -93,11 +112,73 @@ pub struct Pool {
     pub total_locked_lp: u64,
     /// Bootstrapping config
     pub bootstrapping: Bootstrapping,
+    /// partner info
+    pub partner_info: PartnerInfo,
+    /// fee curve
+    pub fee_curve: FeeCurveInfo,
+    /// Flag to indicate that fee update onchain is completed
+    pub is_update_fee_completed: bool,
     /// Padding for future pool field
     pub padding: Padding,
     /// The type of the swap curve supported by the pool.
     // Leaving curve_type as last field give us the flexibility to add specific curve information / new curve type
     pub curve_type: CurveType, //9
+    pub _padding1: [u8; 19],
+}
+
+#[derive(Copy, Clone, Debug, AnchorSerialize, AnchorDeserialize, Default, InitSpace)]
+pub struct FeeCurveInfo {
+    /// Fee curve type, could be flat or linear
+    pub fee_curve_type: FeeCurveType,
+    /// Fee curve point
+    pub points: [FeeBpsFromActivatedPoint; FEE_CURVE_POINT_NUMBER],
+}
+
+#[derive(Copy, Clone, Debug, AnchorSerialize, AnchorDeserialize, InitSpace, Default)]
+pub struct FeeBpsFromActivatedPoint {
+    // fee_bps
+    pub fee_bps: u16, //u16::MAX = 65_535 > 10000
+    // Activated point
+    pub activated_point: u64,
+}
+
+impl FeeCurveInfo {
+    // get current fee bps and return state whether current_point is over the last activated point in dynamic fee curve
+    pub fn get_current_fee_bps(&self, current_point: u64) -> Result<(u64, bool)> {
+        for i in 0..FEE_CURVE_POINT_NUMBER {
+            // current_point is between i-1 and i
+            if self.points[i].activated_point >= current_point {
+                if i == 0 {
+                    return Ok((self.points[i].fee_bps.into(), false));
+                }
+                if self.fee_curve_type == FeeCurveType::Flat {
+                    return Ok((self.points[i - 1].fee_bps.into(), false));
+                }
+                let m: u64 = self.points[i - 1].fee_bps.into();
+                let n: u64 = self.points[i].fee_bps.into();
+                let a = self.points[i - 1].activated_point;
+                let b = self.points[i].activated_point;
+
+                let denominator = b - a;
+                if denominator == 0 {
+                    return Ok((m, false));
+                } else {
+                    // TODO check for math overflow
+                    let numerator = n * (current_point - a) + m * (b - current_point);
+                    return Ok((numerator / denominator, false));
+                }
+            }
+        }
+        Ok((self.points[FEE_CURVE_POINT_NUMBER - 1].fee_bps.into(), true))
+    }
+}
+
+#[derive(Copy, Clone, Debug, AnchorSerialize, AnchorDeserialize, InitSpace, Default)]
+pub struct PartnerInfo {
+    pub fee_numerator: u64,
+    pub partner_authority: Pubkey,
+    pub pending_fee_a: u64,
+    pub pending_fee_b: u64,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
