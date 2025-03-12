@@ -3,6 +3,8 @@
 /// Minimum seconds between last AMP changes
 pub static MIN_CHANGE_AMP_DURATION: u64 = 600; // 10 minutes
 
+pub const FEE_CURVE_POINT_NUMBER: usize = 7;
+
 // #[deprecated]
 /// Store constants related to PDA seeds
 pub mod seeds {
