@@ -20,7 +20,7 @@ meteora-stable-swap-math = { git = "https://github.com/jup-ag/stable-swap.git", 
 meteora-stable-swap-client = { git = "https://github.com/jup-ag/stable-swap.git", rev = "16379f952abbb00d54553eb4d64597f31c086dfa", package = "stable-swap-client" }
 
 [dev-dependencies]
-solana-program-test = "~2"
+solana-program-test = ">=2.2"
 anchor-client = { workspace = true }
-solana-sdk = "~2"
+solana-sdk = ">=2.3"
 bincode = "1.3.3"

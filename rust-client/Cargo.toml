@@ -8,9 +8,9 @@ anchor-lang = { workspace = true }
 anchor-spl = { workspace = true }
 anchor-client = { workspace = true }
 clap = { version = "3.2.25", features = ["derive", "env"] }
-solana-program = { version = "~2" }
-solana-rpc-client = { version = "~2" }
-solana-sdk = { version = "~2" }
+solana-program = { version = ">=2.2" }
+solana-rpc-client = { version = ">=2.2" }
+solana-sdk = { version = ">=2.3" }
 spl-associated-token-account = ">=5"
 anyhow = "1.0.57"
 spl-token = ">=5"
