@@ -47,7 +47,7 @@ impl RpcArgs {
         let payer = Keypair::new();
         let client = AnchorClient::new_with_options(
             Cluster::Custom(self.rpc_url.clone(), self.rpc_url.clone()),
-            Rc::new(Keypair::from_bytes(&payer.to_bytes()).unwrap()),
+            Rc::new(payer.insecure_clone()),
             CommitmentConfig::finalized(),
         );
         let program: anchor_client::Program<Rc<Keypair>> = client.program(program_id).unwrap();

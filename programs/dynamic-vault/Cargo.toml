@@ -17,4 +17,3 @@ name = "dynamic_vault"
 [dependencies]
 anchor-lang = { workspace = true, features = ["event-cpi"] }
 anchor-spl = { workspace = true }
-anchor-client = { workspace = true }
