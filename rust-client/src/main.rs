@@ -9,8 +9,9 @@ use clap::{Parser, Subcommand};
 
 use file::write_signature_to_file;
 pub use rpc::*;
-use solana_sdk::signature::Signature;
-use solana_sdk::{pubkey::Pubkey, signer::keypair::Keypair};
+use solana_keypair::Keypair;
+use solana_pubkey::Pubkey;
+use solana_signature::Signature;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 

@@ -9,18 +9,15 @@ use anchor_spl::{
 use dynamic_amm_quote::QuoteData;
 use prog_dynamic_amm::state::Pool;
 use prog_dynamic_vault::state::Vault;
+use solana_account::Account;
+use solana_instruction::Instruction;
+use solana_keypair::Keypair;
+use solana_program_pack::Pack;
 use solana_program_test::*;
-use solana_sdk::instruction::Instruction;
-use solana_sdk::transaction::Transaction;
-use solana_sdk::{
-    account::Account,
-    program_pack::Pack,
-    pubkey::Pubkey,
-    signature::Keypair,
-    signer::Signer,
-    system_program,
-    sysvar::{self},
-};
+use solana_pubkey::{pubkey, Pubkey};
+use solana_sdk_ids::{system_program, sysvar};
+use solana_signer::Signer;
+use solana_transaction::Transaction;
 use std::collections::HashMap;
 
 pub async fn process_and_assert_ok(
@@ -309,7 +306,7 @@ async fn swap(
 
 #[tokio::test]
 async fn test_quote() {
-    let USDC_USDT = solana_sdk::pubkey!("32D4zRxNc1EssbJieVHfPhZM3rH6CzfUPrWUuWxD9prG");
+    let USDC_USDT = pubkey!("32D4zRxNc1EssbJieVHfPhZM3rH6CzfUPrWUuWxD9prG");
     let mut program_test = ProgramTest::default();
 
     program_test.prefer_bpf(true);

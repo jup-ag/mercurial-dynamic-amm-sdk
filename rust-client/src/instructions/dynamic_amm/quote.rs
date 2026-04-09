@@ -7,8 +7,8 @@ use dynamic_amm_quote::compute_quote;
 use dynamic_amm_quote::QuoteData;
 use prog_dynamic_amm::state::Pool;
 use prog_dynamic_vault::state::Vault;
-use solana_sdk::sysvar::clock;
-use solana_sdk::sysvar::clock::Clock;
+use solana_clock::Clock;
+use solana_sdk_ids::sysvar::clock;
 use std::collections::HashMap;
 #[derive(Parser, Debug, Clone)]
 pub struct QuoteDynamicAmmArgs {
@@ -27,17 +27,13 @@ pub fn process_quote_dynamic_pool(args: &Args, sub_args: &QuoteDynamicAmmArgs) {
         source_token,
     } = sub_args;
 
-    let program_dynamic_amm = args.to_rpc_args().get_program_client(prog_dynamic_amm::ID);
-    let program_dynamic_vault = args
+    let pool_state: Pool = args.to_rpc_args().get_account(*pool).unwrap();
+    let vault_a: Vault = args.to_rpc_args().get_account(pool_state.a_vault).unwrap();
+    let vault_b: Vault = args.to_rpc_args().get_account(pool_state.b_vault).unwrap();
+
+    let accounts = args
         .to_rpc_args()
-        .get_program_client(prog_dynamic_vault::ID);
-
-    let pool_state: Pool = program_dynamic_amm.account(*pool).unwrap();
-    let vault_a: Vault = program_dynamic_vault.account(pool_state.a_vault).unwrap();
-    let vault_b: Vault = program_dynamic_vault.account(pool_state.b_vault).unwrap();
-
-    let accounts = program_dynamic_amm
-        .rpc()
+        .rpc_client()
         .get_multiple_accounts(&[
             pool_state.a_vault_lp,
             pool_state.b_vault_lp,
@@ -76,8 +72,9 @@ pub fn process_quote_dynamic_pool(args: &Args, sub_args: &QuoteDynamicAmmArgs) {
     let clock = deserialize::<Clock>(&data).unwrap();
 
     let stake_data = if pool_state.stake != Pubkey::default() {
-        let account = program_dynamic_amm
-            .rpc()
+        let account = args
+            .to_rpc_args()
+            .rpc_client()
             .get_account(&pool_state.stake)
             .unwrap();
         let mut stake_data = HashMap::new();

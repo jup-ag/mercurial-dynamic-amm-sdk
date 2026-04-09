@@ -1,26 +1,41 @@
 use crate::fee_estimation::DEFAULT_SIGNATURE_FEE;
-use anchor_client::solana_client::rpc_config::RpcSimulateTransactionAccountsConfig;
-use anchor_client::solana_client::rpc_config::RpcSimulateTransactionConfig;
-use anchor_client::solana_client::rpc_response::Response;
-use anchor_client::solana_client::rpc_response::RpcSimulateTransactionResult;
-use anchor_client::Program;
-use anchor_client::{Client as AnchorClient, Cluster};
-use borsh::BorshDeserialize;
+use anchor_lang::AccountDeserialize;
+use solana_commitment_config::CommitmentConfig;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
+use solana_message::Message;
+use solana_message::VersionedMessage;
+use solana_pubkey::Pubkey;
 use solana_rpc_client::rpc_client::RpcClient;
 use solana_rpc_client::rpc_client::SerializableTransaction;
-use solana_sdk::commitment_config::CommitmentConfig;
-use solana_sdk::compute_budget::ComputeBudgetInstruction;
-use solana_sdk::message::Message;
-use solana_sdk::message::VersionedMessage;
-use solana_sdk::signature::Signature;
-use solana_sdk::transaction::Transaction;
-use solana_sdk::transaction::VersionedTransaction;
-use solana_sdk::{pubkey::Pubkey, signer::keypair::Keypair};
-use std::rc::Rc;
+use solana_rpc_client_api::config::{
+    RpcSimulateTransactionAccountsConfig, RpcSimulateTransactionConfig,
+};
+use solana_rpc_client_api::response::{Response, RpcSimulateTransactionResult};
+use solana_signature::Signature;
+use solana_transaction::versioned::VersionedTransaction;
+use solana_transaction::Transaction;
 
 pub const TX_ACTION_SIMULATION: u8 = 0;
 pub const TX_ACTION_SENT_TX: u8 = 1;
 pub const TX_ACTION_ESTIMATE_FEE: u8 = 2;
+
+fn parse_compute_budget_instruction(data: &[u8]) -> Option<ComputeBudgetInstruction> {
+    let discriminator = *data.first()?;
+
+    match discriminator {
+        2 => {
+            let units = u32::from_le_bytes(data.get(1..5)?.try_into().ok()?);
+            Some(ComputeBudgetInstruction::SetComputeUnitLimit(units))
+        }
+        3 => {
+            let micro_lamports = u64::from_le_bytes(data.get(1..9)?.try_into().ok()?);
+            Some(ComputeBudgetInstruction::SetComputeUnitPrice(
+                micro_lamports,
+            ))
+        }
+        _ => None,
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct TransactionPayload {
@@ -43,15 +58,20 @@ pub struct RpcArgs {
 }
 
 impl RpcArgs {
-    pub fn get_program_client(&self, program_id: Pubkey) -> Program<Rc<Keypair>> {
-        let payer = Keypair::new();
-        let client = AnchorClient::new_with_options(
-            Cluster::Custom(self.rpc_url.clone(), self.rpc_url.clone()),
-            Rc::new(payer.insecure_clone()),
-            CommitmentConfig::finalized(),
-        );
-        let program: anchor_client::Program<Rc<Keypair>> = client.program(program_id).unwrap();
-        program
+    pub fn rpc_client(&self) -> RpcClient {
+        RpcClient::new_with_commitment(&self.rpc_url, CommitmentConfig::finalized())
+    }
+
+    pub fn get_account<T: AccountDeserialize>(&self, address: Pubkey) -> anyhow::Result<T> {
+        let account = self.rpc_client().get_account(&address)?;
+        let mut data = account.data.as_slice();
+        match T::try_deserialize(&mut data) {
+            Ok(value) => Ok(value),
+            Err(_) => {
+                let mut data = account.data.as_slice();
+                T::try_deserialize_unchecked(&mut data).map_err(Into::into)
+            }
+        }
     }
 
     pub fn send_transaction_wrapper(
@@ -219,23 +239,17 @@ impl RpcArgs {
         let num_signature = tx.signatures.len();
         let base_fee = (num_signature as u64) * DEFAULT_SIGNATURE_FEE;
 
-        let x =
-            match ComputeBudgetInstruction::deserialize(&mut &tx.message.instructions[0].data[..])
-                .unwrap()
-            {
-                ComputeBudgetInstruction::SetComputeUnitPrice(price) => price,
-                ComputeBudgetInstruction::SetComputeUnitLimit(compute_unit) => compute_unit as u64,
-                _ => 0,
-            };
+        let x = match parse_compute_budget_instruction(&tx.message.instructions[0].data).unwrap() {
+            ComputeBudgetInstruction::SetComputeUnitPrice(price) => price,
+            ComputeBudgetInstruction::SetComputeUnitLimit(compute_unit) => compute_unit as u64,
+            _ => 0,
+        };
 
-        let y =
-            match ComputeBudgetInstruction::deserialize(&mut &tx.message.instructions[1].data[..])
-                .unwrap()
-            {
-                ComputeBudgetInstruction::SetComputeUnitPrice(price) => price,
-                ComputeBudgetInstruction::SetComputeUnitLimit(compute_unit) => compute_unit as u64,
-                _ => 0,
-            };
+        let y = match parse_compute_budget_instruction(&tx.message.instructions[1].data).unwrap() {
+            ComputeBudgetInstruction::SetComputeUnitPrice(price) => price,
+            ComputeBudgetInstruction::SetComputeUnitLimit(compute_unit) => compute_unit as u64,
+            _ => 0,
+        };
 
         if x == 0 && y == 0 {
             println!("Cannot estimate price {}", wallet_memo);
@@ -261,7 +275,7 @@ impl RpcArgs {
                 recent_blockhash: _,
                 instructions,
             }) => instructions,
-            VersionedMessage::V0(solana_sdk::message::v0::Message {
+            VersionedMessage::V0(solana_message::v0::Message {
                 header: _,
                 account_keys: _,
                 recent_blockhash: _,
@@ -269,15 +283,13 @@ impl RpcArgs {
                 address_table_lookups: _,
             }) => instructions,
         };
-        let x = match ComputeBudgetInstruction::deserialize(&mut &instructions[1].data[..]).unwrap()
-        {
+        let x = match parse_compute_budget_instruction(&instructions[1].data).unwrap() {
             ComputeBudgetInstruction::SetComputeUnitPrice(price) => price,
             ComputeBudgetInstruction::SetComputeUnitLimit(compute_unit) => compute_unit as u64,
             _ => 0,
         };
 
-        let y = match ComputeBudgetInstruction::deserialize(&mut &instructions[0].data[..]).unwrap()
-        {
+        let y = match parse_compute_budget_instruction(&instructions[0].data).unwrap() {
             ComputeBudgetInstruction::SetComputeUnitPrice(price) => price,
             ComputeBudgetInstruction::SetComputeUnitLimit(compute_unit) => compute_unit as u64,
             _ => 0,

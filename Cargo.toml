@@ -8,13 +8,6 @@ authors = ["Andrew"]
 edition = "2021"
 
 [workspace.dependencies]
-anchor-lang = "0.31.1"
-anchor-spl = "0.31.1"
-anchor-client = "0.31.1"
-
-[patch.crates-io]
-anchor-lang = { git = "https://github.com/coral-xyz/anchor.git", rev = "4a669f3edaba4cb0939aa3224fd6a076937da791" }
-anchor-spl = { git = "https://github.com/coral-xyz/anchor.git", rev = "4a669f3edaba4cb0939aa3224fd6a076937da791" }
-anchor-client = { git = "https://github.com/coral-xyz/anchor.git", rev = "4a669f3edaba4cb0939aa3224fd6a076937da791" }
-spl-stake-pool = { git = "https://github.com/jup-ag/solana-program-library.git", rev = "92d6fa7ea8dd5576d9b4737c858d351ec8f32605" }
-spl-token-swap = { git = "https://github.com/jup-ag/solana-program-library.git", rev = "92d6fa7ea8dd5576d9b4737c858d351ec8f32605" }
+anchor-lang = "1.0.0"
+anchor-spl = "1.0.0"
+anchor-client = "1.0.0"

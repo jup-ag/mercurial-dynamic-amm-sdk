@@ -1,5 +1,6 @@
+use anchor_lang::__private::base64::{engine::general_purpose::STANDARD, Engine};
 use regex::Regex;
-use solana_sdk::pubkey::Pubkey;
+use solana_pubkey::Pubkey;
 
 pub fn parse_event_log<
     T: anchor_lang::AnchorDeserialize + anchor_lang::AnchorSerialize + anchor_lang::Discriminator,
@@ -24,7 +25,7 @@ pub fn parse_event_log<
             // Event logged has been changed to Program data: instead of Program log:
             // https://github.com/project-serum/anchor/pull/1608/files
             let log_info: String = log.chars().skip(14).collect();
-            let log_buf = anchor_lang::__private::base64::decode(log_info.as_bytes());
+            let log_buf = STANDARD.decode(log_info.as_bytes());
             if log_buf.is_ok() {
                 let log_buf = log_buf.ok()?;
                 // Check for event discriminator, it is a 8-byte prefix

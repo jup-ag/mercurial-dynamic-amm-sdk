@@ -1,18 +1,22 @@
 use self::fee_estimation::CREATE_POOL_COMPUTE_UNIT;
 use crate::*;
+use anchor_lang::system_program;
 use anchor_lang::AccountDeserialize;
 use anchor_lang::InstructionData;
 use anchor_lang::ToAccountMetas;
 use anchor_spl::associated_token::get_associated_token_address;
 use prog_dynamic_amm::state::CurveType;
 use prog_dynamic_vault::state::Vault;
+use solana_commitment_config::CommitmentConfig;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
+use solana_instruction::Instruction;
+use solana_keypair::read_keypair_file;
+use solana_pubkey::Pubkey as MplPubkey;
 use solana_rpc_client::rpc_client::RpcClient;
-use solana_sdk::commitment_config::CommitmentConfig;
-use solana_sdk::compute_budget::ComputeBudgetInstruction;
-use solana_sdk::instruction::Instruction;
-use solana_sdk::signer::keypair::read_keypair_file;
-use solana_sdk::signer::Signer;
-use solana_sdk::transaction::Transaction;
+use solana_sdk_ids::sysvar::rent;
+use solana_signer::Signer;
+use solana_transaction::Transaction;
+use spl_token_interface::ID as TOKEN_PROGRAM_ID;
 #[derive(Parser, Debug, Clone)]
 pub struct CreateDynamicAmmPoolArgs {
     #[clap(long, env)]
@@ -54,10 +58,10 @@ pub fn process_new_dynamic_pool(args: &Args, sub_args: &CreateDynamicAmmPoolArgs
                 vault: a_vault,
                 token_vault: a_token_vault,
                 token_mint: *token_a_mint,
-                token_program: spl_token::ID,
+                token_program: TOKEN_PROGRAM_ID,
                 lp_mint: a_vault_lp_mint,
-                rent: anchor_client::solana_sdk::sysvar::rent::ID,
-                system_program: solana_program::system_program::ID,
+                rent: rent::ID,
+                system_program: system_program::ID,
                 payer: keypair.pubkey(),
             }
             .to_account_metas(None),
@@ -81,10 +85,10 @@ pub fn process_new_dynamic_pool(args: &Args, sub_args: &CreateDynamicAmmPoolArgs
                     vault: b_vault,
                     token_vault: b_token_vault,
                     token_mint: *token_b_mint,
-                    token_program: spl_token::ID,
+                    token_program: TOKEN_PROGRAM_ID,
                     lp_mint: b_vault_lp_mint,
-                    rent: anchor_client::solana_sdk::sysvar::rent::ID,
-                    system_program: solana_program::system_program::ID,
+                    rent: rent::ID,
+                    system_program: system_program::ID,
                     payer: keypair.pubkey(),
                 }
                 .to_account_metas(None),
@@ -95,13 +99,15 @@ pub fn process_new_dynamic_pool(args: &Args, sub_args: &CreateDynamicAmmPoolArgs
 
     let pool = derive_pool_address(*token_a_mint, *token_b_mint, *trade_fee_bps);
     let pool_lp_mint = derive_pool_lp_mint_address(pool);
-    let (mint_metadata, _bump) = mpl_token_metadata::accounts::Metadata::find_pda(&pool_lp_mint);
+    let (mint_metadata, _bump) = mpl_token_metadata::accounts::Metadata::find_pda(
+        &MplPubkey::new_from_array(pool_lp_mint.to_bytes()),
+    );
     ixs.push(Instruction {
         program_id: prog_dynamic_amm::ID,
         accounts: prog_dynamic_amm::accounts::InitializePermissionlessPoolWithFeeTier {
             pool,
-            rent: anchor_client::solana_sdk::sysvar::rent::ID,
-            system_program: solana_program::system_program::ID,
+            rent: rent::ID,
+            system_program: system_program::ID,
             payer: keypair.pubkey(),
             a_vault,
             b_vault,
@@ -112,7 +118,7 @@ pub fn process_new_dynamic_pool(args: &Args, sub_args: &CreateDynamicAmmPoolArgs
             lp_mint: pool_lp_mint,
             token_a_mint: *token_a_mint,
             token_b_mint: *token_b_mint,
-            token_program: spl_token::ID,
+            token_program: TOKEN_PROGRAM_ID,
             associated_token_program: spl_associated_token_account::ID,
             a_vault_lp: derive_vault_lp_token_address(a_vault, pool),
             b_vault_lp: derive_vault_lp_token_address(b_vault, pool),
@@ -123,8 +129,8 @@ pub fn process_new_dynamic_pool(args: &Args, sub_args: &CreateDynamicAmmPoolArgs
             protocol_token_b_fee: derive_pool_fee_token_address(*token_b_mint, pool),
             fee_owner: Pubkey::default(),
             vault_program: prog_dynamic_vault::ID,
-            metadata_program: mpl_token_metadata::ID,
-            mint_metadata,
+            metadata_program: Pubkey::new_from_array(mpl_token_metadata::ID.to_bytes()),
+            mint_metadata: Pubkey::new_from_array(mint_metadata.to_bytes()),
         }
         .to_account_metas(None),
         data: prog_dynamic_amm::instruction::InitializePermissionlessPoolWithFeeTier {

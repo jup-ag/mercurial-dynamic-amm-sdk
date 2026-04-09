@@ -1,4 +1,4 @@
-use solana_sdk::signer::keypair::Keypair;
+use solana_keypair::Keypair;
 use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::BufReader;

@@ -67,8 +67,8 @@ pub mod dynamic_amm {
     }
 
     /// Swap token A to B, or vice versa. An amount of trading fee will be charged for liquidity provider, and the admin of the pool.
-    pub fn swap<'a, 'b, 'c, 'info>(
-        ctx: Context<'a, 'b, 'c, 'info, Swap<'info>>,
+    pub fn swap<'info>(
+        ctx: Context<'info, Swap<'info>>,
         in_amount: u64,
         minimum_out_amount: u64,
     ) -> Result<()> {

@@ -1,10 +1,10 @@
-use anchor_lang::solana_program::borsh1;
+use borsh::BorshDeserialize;
 use prog_dynamic_amm::constants::depeg;
 use spl_stake_pool::state::StakePool;
 use std::convert::TryInto;
 
 pub fn get_virtual_price(bytes: &[u8]) -> Option<u64> {
-    let stake: StakePool = borsh1::try_from_slice_unchecked(bytes).ok()?;
+    let stake = StakePool::try_from_slice(bytes).ok()?;
 
     let virtual_price = (stake.total_lamports as u128)
         .checked_mul(depeg::PRECISION as u128)?

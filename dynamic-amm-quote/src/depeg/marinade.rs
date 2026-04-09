@@ -1,4 +1,5 @@
-use anchor_lang::prelude::*;
+use anchor_lang::prelude::declare_id;
+use borsh::BorshDeserialize;
 use marinade_sdk::state::marinade::Marinade;
 use prog_dynamic_amm::constants::depeg;
 use std::convert::TryInto;
