@@ -11,3 +11,8 @@ edition = "2021"
 anchor-lang = "1.0.0"
 anchor-spl = "1.0.0"
 anchor-client = "1.0.0"
+
+[patch.crates-io]
+spl-stake-pool = { git = "https://github.com/solana-program/stake-pool.git", rev = "36096981884e390565fae235b916e8ccc05a749c", features = [
+    "no-entrypoint",
+] }

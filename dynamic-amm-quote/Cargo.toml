@@ -16,8 +16,10 @@ anyhow = "1.0.57"
 borsh = "1.6.1"
 marinade-sdk = { git = "https://github.com/jup-ag/marinade-sdk.git", rev = "fe1cbd37d3e82823714d288db0279530e198ec2f" }
 solana-stake-interface = "3.1.0"
-spl-token-swap = { git = "https://github.com/jup-ag/solana-program-library.git", rev = "318fdc1d66cef644622f94f9f51d4378639a89a1" }
-spl-stake-pool = { git = "https://github.com/solana-program/stake-pool.git", rev = "36096981884e390565fae235b916e8ccc05a749c" }
+spl-token-swap = { git = "https://github.com/jup-ag/solana-program-library.git", rev = "318fdc1d66cef644622f94f9f51d4378639a89a1", features = [
+    "no-entrypoint",
+] }
+spl-stake-pool = "2.0.3"
 meteora-stable-swap-math = { git = "https://github.com/jup-ag/stable-swap.git", rev = "fe6d5d26480eaaa8bb5d736363fa572eb92acfc3", package = "stable-swap-math" }
 meteora-stable-swap-client = { git = "https://github.com/jup-ag/stable-swap.git", rev = "fe6d5d26480eaaa8bb5d736363fa572eb92acfc3", package = "stable-swap-client" }
 
