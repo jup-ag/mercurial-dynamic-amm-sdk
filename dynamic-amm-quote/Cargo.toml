@@ -14,24 +14,24 @@ prog_dynamic_amm = { path = "../programs/dynamic-amm", package = "dynamic-amm" }
 prog_dynamic_vault = { path = "../programs/dynamic-vault", package = "dynamic-vault" }
 anyhow = "1.0.57"
 borsh = "1.6.1"
-marinade-sdk = { git = "https://github.com/jup-ag/marinade-sdk.git", rev = "fe1cbd37d3e82823714d288db0279530e198ec2f" }
+marinade-sdk = { git = "https://github.com/jup-ag/marinade-sdk.git", rev = "91971548a994e00cb8d639968e613d2c1d382cf5" }
 solana-stake-interface = "3.1.0"
-spl-token-swap = { git = "https://github.com/jup-ag/solana-program-library.git", rev = "318fdc1d66cef644622f94f9f51d4378639a89a1", features = [
+spl-token-swap = { git = "https://github.com/solana-labs/solana-program-library.git", rev = "ec7745ba777b1b68e11573a7e30321267535d127", features = [
     "no-entrypoint",
 ] }
-spl-stake-pool = "2.0.3"
-meteora-stable-swap-math = { git = "https://github.com/jup-ag/stable-swap.git", rev = "fe6d5d26480eaaa8bb5d736363fa572eb92acfc3", package = "stable-swap-math" }
-meteora-stable-swap-client = { git = "https://github.com/jup-ag/stable-swap.git", rev = "fe6d5d26480eaaa8bb5d736363fa572eb92acfc3", package = "stable-swap-client" }
+spl-stake-pool = "2.0.0"
+meteora-stable-swap-math = { git = "https://github.com/jup-ag/stable-swap.git", rev = "20077fab3bd855b76261ae454b03727a708e56c9", package = "stable-swap-math" }
+meteora-stable-swap-client = { git = "https://github.com/jup-ag/stable-swap.git", rev = "20077fab3bd855b76261ae454b03727a708e56c9", package = "stable-swap-client" }
 
 [dev-dependencies]
-solana-program-test = "3.0.14"
+solana-program-test = "4.1.2"
 anchor-client = { workspace = true }
-solana-account = "3.4.0"
+solana-account = "4.3.1"
 solana-instruction = "3.4.0"
 solana-keypair = "3.1.2"
 solana-program-pack = "3.1.0"
-solana-pubkey = "3.0.0"
+solana-pubkey = "4.2.0"
 solana-sdk-ids = "3.1.0"
 solana-signer = "3.0.0"
-solana-transaction = "3.1.0"
+solana-transaction = "4.1.5"
 bincode = "1.3.3"
